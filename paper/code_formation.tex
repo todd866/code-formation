@@ -258,23 +258,29 @@ Figure~\ref{fig:sr} demonstrates this SR-like behavior:
 \begin{figure}[H]
 \centering
 \includegraphics[width=\textwidth]{../output/stochastic_resonance.png}
-\caption{\textbf{SR-like behavior and expectation bias.} (a) Learned codes and ambiguous test signals on basin boundaries. (b) Accuracy peaks at intermediate noise---the hallmark SR curve. (c) Effective dimensionality (PR) increases monotonically with noise. (d) Expectation-biased SR: when a high-dimensional ``expectation'' signal is added before the bottleneck, it biases which basin ambiguous inputs land in.}
+\caption{\textbf{SR-like behavior and expectation bias.} (a) Learned codes (colored centroids) and ambiguous test signals ($\times$, positioned near decision boundaries). (b) Decoding accuracy peaks at intermediate noise---the hallmark SR curve. The star marks the SR peak for the unbiased condition. (c) Effective dimensionality (participation ratio) increases monotonically with noise, reflecting expansion into the ambient 512-D space. (d) Expectation-biased SR: a high-dimensional expectation signal added in 512-D input space (before the bottleneck) biases which basin ambiguous inputs land in. Expectation effectively tilts the potential landscape, widening the basin of attraction for the expected code.}
 \label{fig:sr}
 \end{figure}
 
-This reframes SR in geometric terms: noise provides access to extra degrees of freedom in the ambient embedding space, enabling escape from low-dimensional traps. Optimal performance occurs when noise is sufficient to escape boundaries but not so large as to cause random wandering.
+This reframes SR in geometric terms: the ambiguous signal is trapped on a low-dimensional saddle (the decision boundary). Noise does not merely add energy for barrier-crossing; it restores rank to the covariance matrix, allowing system trajectories to utilize the full dimensionality of the ambient space ($N=512$) to bypass the bottleneck-induced constriction ($k=2$). Optimal performance occurs when noise is sufficient to escape boundaries but not so large as to cause random wandering.
 
 \subsection{Expectation-Biased Stochastic Resonance}
 
 The SR phenomenon described above assumes \textit{isotropic} noise---random fluctuations with no preferred direction. But in systems with top-down predictions, the noise need not be isotropic. We propose \textbf{expectation-biased stochastic resonance} (EBSR): the same SR dynamics, but with noise biased toward an expected code.
 
-Formally, let $\mathbf{z}_0$ be an ambiguous code sitting on a decision boundary. Its trajectory under noisy dynamics becomes:
+This maps naturally onto drift-diffusion dynamics. In Langevin form:
+\begin{equation}
+    d\mathbf{x} = -\nabla U(\mathbf{x})\,dt + \mathbf{F}_{\text{bias}}\,dt + \sigma\,d\mathbf{W}
+\end{equation}
+where $U(\mathbf{x})$ is the effective potential (learned by the decoder), $\mathbf{F}_{\text{bias}}$ is the expectation-induced drift toward a predicted code, and $\sigma\,d\mathbf{W}$ is the stochastic noise term. The expectation term breaks the symmetry of the potential landscape, effectively tilting the basin of attraction so that noise preferentially kicks the state into the expected code.
+
+In discrete form for our simulation:
 \begin{equation}
     \mathbf{z}_{t+1} = \mathbf{z}_t + \eta\boldsymbol{\xi}_t + \beta\mathbf{b}
 \end{equation}
 where $\boldsymbol{\xi}_t \sim \mathcal{N}(0, I)$ is isotropic noise (scaled by $\eta$), $\mathbf{b}$ is a unit vector pointing toward the expected code centroid, and $\beta$ controls the strength of expectation bias.
 
-Figure~\ref{fig:sr}(d) demonstrates this in our simulation. We add expectation not in the low-dimensional code space, but in the original 512-dimensional input space---before the bottleneck. This models the key biological intuition: top-down signals (e.g., from higher cortical areas) enter the system at the high-dimensional stage and bias which code emerges after dimensional collapse.
+Figure~\ref{fig:sr}(d) demonstrates this in our simulation. Crucially, we add expectation not in the low-dimensional code space, but in the original 512-dimensional input space---before the bottleneck. This models the key biological intuition: top-down signals (e.g., from higher cortical areas) enter the system at the high-dimensional stage and bias which code emerges after dimensional collapse. The expectation effectively widens the basin of attraction for the target code while narrowing it for competitors.
 
 The results show that expectation reliably biases which basin ambiguous inputs land in. When the expectation matches the true category, accuracy improves; when it mismatches, systematic errors occur.
 
