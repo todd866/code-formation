@@ -272,9 +272,18 @@ The simulation is deliberately minimal and agnostic about biophysical details. T
 
 Humans perceive continuous stimuli as discrete categories---colors, phonemes, facial expressions \citep{harnad1987}. If sensory information must pass through bandwidth-limited neural pathways (due to metabolic constraints, synaptic noise, or architectural bottlenecks), discretization of the kind demonstrated here could contribute to categorical perception.
 
-\subsection{Ephaptic-to-Neural Coupling}
+\subsection{Beta-Gamma Coupling and Ephaptic Fields}
 
-A speculative but intriguing application concerns the interface between ephaptic fields and neural spiking. Ephaptic coupling---the influence of local field potentials on nearby neurons---represents a high-dimensional, continuous electromagnetic field interacting with discrete spike-based neural codes. If information must flow from the continuous field domain into the discrete spiking domain through a capacity-limited interface (e.g., voltage-sensitive ion channels with finite dynamic range and noise), the kind of discretization demonstrated here could play a role. The ``bottleneck'' would be the biophysical coupling mechanism; the ``noise'' would be thermal and channel noise. This suggests a framework for understanding how continuous field dynamics might give rise to discrete neural representations.
+A speculative but intriguing application concerns the interface between oscillatory field dynamics and neural spiking. Consider the beta-gamma coupling observed in cortex: beta oscillations ($\sim$15--30 Hz) modulate the amplitude of nested gamma oscillations ($\sim$30--100 Hz), which in turn coordinate spike timing.
+
+A common interpretation treats beta as ``simple'' (low-dimensional) because it is slow. We suggest an alternative: low-frequency oscillations can support \textit{more} spatial modes (higher effective dimensionality) precisely because they vary slowly enough for complex spatial patterns to be sustained. Gamma, being faster, acts as a bandwidth-limited channel---a bottleneck that compresses the high-dimensional beta/field structure into a lower-dimensional but higher-information-density code. Spikes then provide a further discretization step.
+
+In this view, the cascade is:
+\begin{center}
+\textit{Beta field (high-D)} $\to$ \textit{Gamma (low-D, high info)} $\to$ \textit{Spikes (discrete codes)}
+\end{center}
+
+Each arrow represents a noisy, capacity-limited interface of the kind simulated here. The ``code formation'' we demonstrate---discretization via bottleneck + noise---may thus occur at multiple stages: first at the beta-to-gamma transition (field compression), and again at the gamma-to-spike transition (neural discretization). This inverts the standard interpretation and suggests that slow oscillations are not simple carriers but high-dimensional substrates from which discrete neural codes crystallize.
 
 \subsection{Symbol Emergence in Language}
 
