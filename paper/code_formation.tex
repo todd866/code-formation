@@ -1,0 +1,294 @@
+\documentclass[11pt,a4paper]{article}
+
+% Packages
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage[margin=1in]{geometry}
+\usepackage{hyperref}
+\usepackage{natbib}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{listings}
+\usepackage{float}
+
+% Code listing style
+\lstset{
+    language=Python,
+    basicstyle=\small\ttfamily,
+    keywordstyle=\color{blue},
+    commentstyle=\color{gray},
+    stringstyle=\color{orange},
+    showstringspaces=false,
+    breaklines=true,
+    frame=single,
+    backgroundcolor=\color{gray!10}
+}
+
+% Custom colors
+\definecolor{critical}{RGB}{213,94,0}
+\definecolor{control}{RGB}{0,158,115}
+\definecolor{highk}{RGB}{0,114,178}
+
+% Title
+\title{Discrete Codes from Continuous Substrates:\\
+A Simulation of Noise-Induced Symmetry Breaking}
+
+\author{Ian Todd\\
+\textit{University of Sydney}\\
+\texttt{itod2305@uni.sydney.edu.au}}
+
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We present a minimal simulation demonstrating that discrete symbolic codes emerge spontaneously when continuous data passes through a noisy bandwidth-limited channel. The simulation reveals that neither the dimensional bottleneck nor channel noise alone produces discretization---both ingredients are required for the topological phase transition from continuous to discrete representation. We describe the simulation architecture, present control experiments isolating the causal factors, and discuss implications for categorical perception, neural coding, and the emergence of digital information in biological systems. The simulation provides a concrete, reproducible demonstration of how ``symbols emerge from substrates'' through information-theoretic constraints.
+\end{abstract}
+
+\section{Introduction}
+
+How do discrete symbols emerge from continuous physical substrates? This question spans cognitive science (how do brains form discrete concepts?), linguistics (how did discrete language emerge?), and origin-of-life research (how did digital genetic information arise from analog chemistry?).
+
+We approach this question computationally, constructing a minimal simulation that exhibits spontaneous discretization. The goal is not to model any specific biological system, but to identify the \textit{sufficient conditions} for code formation---the minimal ingredients that, when combined, inevitably produce discrete representations.
+
+Our central finding is that two ingredients are required:
+\begin{enumerate}
+    \item A \textbf{dimensional bottleneck}: Information must pass through a channel with fewer degrees of freedom than the input
+    \item \textbf{Channel noise}: The transmission is corrupted by stochastic perturbations
+\end{enumerate}
+
+Neither alone produces discretization. The bottleneck without noise preserves continuous structure. Noise without a bottleneck leaves room for continuous codes. But together, they force the system into a regime where only discrete codes can reliably transmit information.
+
+This paper describes what we simulated, how we simulated it, and what it might mean.
+
+\section{What We Simulated}
+
+\subsection{The Input: A Continuous Manifold}
+
+We need a continuous input space with clear topology. We chose a ring---a 1-dimensional closed manifold---embedded in high-dimensional space. Concretely:
+
+\begin{lstlisting}
+# Generate 2000 points uniformly on a circle
+theta = random(0, 2*pi, n_samples=2000)
+ring_2d = [cos(theta), sin(theta)]
+
+# Embed in 512 dimensions via random projection
+projection = random_orthonormal(2, 512)
+data_512d = ring_2d @ projection + noise(0.05)
+\end{lstlisting}
+
+The input is \textit{continuous}---points can take any value along the ring. There are no discrete categories in the data itself. We use color (hue) as a visual metaphor: the ring represents a continuous color wheel embedded in a high-dimensional feature space.
+
+For \textit{evaluation only}, we partition the ring into 6 equal sectors (like rainbow colors) and ask: do the learned codes preserve this structure? This is measured by the Adjusted Rand Index (ARI) between k-means clusters of learned codes and ground-truth sectors.
+
+\subsection{The Channel: Encoder-Noise-Decoder}
+
+The core architecture is a sender-channel-receiver system:
+
+\begin{lstlisting}
+# Encoder: compress 512D to k dimensions
+code = encoder(input)  # code is k-dimensional
+
+# Channel: add Gaussian noise
+noisy_code = code + noise(sigma)
+
+# Decoder: reconstruct 512D from noisy code
+output = decoder(noisy_code)
+
+# Training objective: minimize reconstruction error
+loss = mean_squared_error(input, output)
+\end{lstlisting}
+
+The encoder and decoder are neural networks (3-layer MLPs with ReLU activations). The channel dimension $k$ and noise level $\sigma$ are the experimental variables.
+
+The key insight is that the encoder must learn codes that are \textit{robust to noise}. If two nearby codes get confused after noise corruption, the decoder cannot distinguish them, and reconstruction suffers. The only solution is to space codes apart---creating discrete clusters with ``safety margins.''
+
+\subsection{The Metrics}
+
+We measure two quantities:
+
+\textbf{Semantic Preservation (ARI)}: Do learned codes preserve the ring's structure? We cluster codes via k-means and compare to 6-sector ground truth. ARI = 1 means perfect preservation; ARI = 0 means random.
+
+\textbf{Effective Dimensionality (Participation Ratio)}:
+\begin{equation}
+    \text{PR} = \frac{(\sum_i \lambda_i)^2}{\sum_i \lambda_i^2}
+\end{equation}
+where $\lambda_i$ are eigenvalues of the code covariance matrix. For data spread evenly across $d$ dimensions, PR $\approx d$. For data collapsed to a line, PR $\approx 1$.
+
+\section{The Control Experiment}
+
+Our main result comes from a simple control experiment. We ask: what \textit{causes} the discretization?
+
+\begin{table}[H]
+\centering
+\caption{Control experiment: both bottleneck AND noise required for clustering.}
+\label{tab:control}
+\begin{tabular}{lccc}
+\toprule
+Condition & Bottleneck ($k$) & Noise ($\sigma$) & Result \\
+\midrule
+Bottleneck only & 2 & 0 & \textcolor{control}{Continuous ring} \\
+Noise only & 32 & 0.5 & \textcolor{highk}{Continuous ring} \\
+\textbf{Both} & \textbf{2} & \textbf{0.5} & \textcolor{critical}{\textbf{Discrete clusters}} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Figure~\ref{fig:control} shows this visually. The top row tells a linear story:
+\begin{enumerate}
+    \item \textbf{The Input}: A perfect continuous ring (color = position on ring)
+    \item \textbf{Bottleneck Only}: Compressed to $k=2$ with no noise---ring topology preserved
+    \item \textbf{Bottleneck + Noise}: Compressed to $k=2$ with $\sigma=0.5$---discrete clusters emerge
+\end{enumerate}
+
+The bottom row shows that increasing $k$ (with noise held constant) restores continuous representation. At $k=32$, there is enough ``room'' in the channel for the ring to survive despite noise.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{../output/codes_by_channel_dim.png}
+\caption{\textbf{Visual proof of the two-ingredient hypothesis.} Top row: (1) Continuous input ring, (2) bottleneck alone preserves topology, (3) bottleneck + noise $\to$ discrete clusters. Black X's = learned centroids. Bottom row: As channel dimension increases, ring structure returns despite noise.}
+\label{fig:control}
+\end{figure}
+
+\section{The Phase Transition}
+
+Figure~\ref{fig:phase} shows how semantic preservation varies with channel dimension $k$. There are three regimes:
+
+\begin{enumerate}
+    \item \textbf{$k=1$: Topological collapse.} The ring is forced onto a line. Adjacent points on the ring may map to distant points on the line. Topology is destroyed.
+
+    \item \textbf{$k \approx k_c$: Critical capacity.} Discrete codes emerge that optimally preserve semantic structure. The system ``discovers'' that 6 well-separated clusters is the best way to use the limited channel.
+
+    \item \textbf{$k \gg k_c$: Continuous preservation.} With sufficient bandwidth, the ring can be transmitted continuously. Noise is present but doesn't force discretization.
+\end{enumerate}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{../output/summary_figure.png}
+\caption{\textbf{Phase transition in code structure.} (a) Schematic showing three regimes. (b) Semantic preservation (ARI vs.~6-sector ground truth) as function of channel dimension $k$. Peak at critical capacity $k_c \approx 2$. Noise $\sigma = 0.5$.}
+\label{fig:phase}
+\end{figure}
+
+This is a \textit{topological phase transition}. The continuous $O(2)$ rotational symmetry of the ring breaks into discrete $C_6$ symmetry (6-fold rotation). The order parameter is the discreteness of the code distribution.
+
+\section{The Mechanism: Sphere Packing}
+
+Why does discretization occur at critical capacity? The answer is \textbf{sphere packing}.
+
+Channel noise smears each code point into an ``uncertainty sphere'' of radius $\sim\sigma$. If two codes are closer than $2\sigma$, their uncertainty spheres overlap, and the decoder cannot reliably distinguish them.
+
+The question becomes: how many non-overlapping spheres can you pack into a $k$-dimensional channel? This is the classical sphere-packing problem \citep{conway1999}. The answer determines the channel capacity:
+\begin{equation}
+    C \approx k \cdot \log_2(1 + \text{SNR})
+\end{equation}
+where SNR is the signal-to-noise ratio \citep{shannon1948}.
+
+For our parameters ($k=2$, $\sigma=0.5$), the capacity supports approximately 6 distinguishable codes---exactly what we observe. The network doesn't ``know'' about sphere packing; it discovers this constraint through gradient descent on reconstruction error.
+
+\section{What Gets Preserved}
+
+When compressing from 512 dimensions to $k$ dimensions, what does the encoder choose to preserve?
+
+Figure~\ref{fig:pca} shows that the encoder learns to preserve \textbf{high-variance directions}---essentially the top principal components of the input. The ring lives primarily in the first 2 PCs (with PC1 $\approx \cos\theta$ and PC2 $\approx \sin\theta$), and these are what the encoder captures.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{../output/what_gets_preserved.png}
+\caption{\textbf{What gets preserved.} Top: Input lives in first 2 PCs. PC1-2 capture the ring; higher PCs are noise. Bottom: Encoder learns to preserve these high-variance directions. At $k=2$ with noise, discretization occurs.}
+\label{fig:pca}
+\end{figure}
+
+This makes intuitive sense: high-variance directions carry the most information about input structure. Low-variance directions (the remaining 510 dimensions of noise) are discarded as uninformative.
+
+The encoder is essentially learning a \textit{noise-robust PCA}---with the crucial addition that nonlinear activations allow it to ``tear'' the topology when capacity is insufficient.
+
+\section{Extension: Stochastic Resonance}
+
+Our framework provides a geometric interpretation of \textbf{stochastic resonance} (SR)---the counterintuitive phenomenon where adding noise \textit{improves} signal detection \citep{gammaitoni1998}.
+
+Consider an ambiguous signal sitting exactly on the boundary between two code clusters. This signal is effectively \textit{one-dimensional}: it is constrained to the decision boundary between basins.
+
+Adding noise \textit{expands the dimensionality} of the representation. The signal can now fluctuate perpendicular to the boundary, enabling escape into the correct attractor basin.
+
+Figure~\ref{fig:sr} demonstrates this:
+\begin{itemize}
+    \item At zero noise, ambiguous signals are trapped on 1D boundaries $\to$ poor decoding
+    \item At intermediate noise, dimensionality expands enough to escape $\to$ peak accuracy
+    \item At high noise, random walk dominates $\to$ decoding degrades
+\end{itemize}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{../output/stochastic_resonance.png}
+\caption{\textbf{Stochastic resonance as dimensionality expansion.} (a) Codes and ambiguous test signals. (b) SR curve: accuracy peaks at intermediate noise. (c) Effective dimensionality increases with noise. (d--f) Geometric interpretation.}
+\label{fig:sr}
+\end{figure}
+
+This reframes SR from an ``energy barrier'' phenomenon to a \textbf{dimensionality} phenomenon: noise provides the extra degrees of freedom needed to escape low-dimensional traps.
+
+\section{Implications}
+
+\subsection{Categorical Perception}
+
+Humans perceive continuous stimuli as discrete categories---colors, phonemes, facial expressions \citep{harnad1987}. Our simulation suggests this may arise from channel capacity limits in neural processing. If sensory information must pass through bandwidth-limited pathways (due to metabolic constraints, noise, or architectural bottlenecks), discretization becomes inevitable.
+
+\subsection{The Magical Number Seven}
+
+Miller's famous ``7 $\pm$ 2'' limit on working memory capacity \citep{miller1956} may reflect a sphere-packing constraint. If working memory operates through a noisy channel, the number of distinguishable items is determined by $C \approx k \cdot \log(1 + \text{SNR})$---not by arbitrary neural architecture.
+
+\subsection{Language and Symbol Emergence}
+
+Discrete tokens are fundamental to language. Our simulation suggests that discretization doesn't require explicit symbolic machinery---it emerges automatically when information must pass through capacity-limited channels. This has implications for theories of language evolution: discrete symbols may have emerged as the \textit{inevitable} solution to noisy communication.
+
+\subsection{The Origin of Digital Information}
+
+Life uses digital information (genetic sequences) despite operating in an analog chemical medium. How did this transition occur? Our framework suggests that noise + capacity constraints may have forced early self-replicating systems toward discrete coding \citep{walker2017, deacon2011}. The genetic code may be an instance of noise-induced symmetry breaking.
+
+\subsection{Sub-Landauer Computing}
+
+Landauer's principle states that erasing one bit of information dissipates at least $k_B T \ln 2$ of energy \citep{landauer1961}. But our simulation shows that discrete codes can emerge \textit{without explicit erasure}---through the interaction of compression and noise. This suggests a thermodynamic regime below Landauer's limit where information processing occurs through constraint satisfaction rather than explicit bit operations \citep{bennett1982}.
+
+\section{Limitations}
+
+This simulation is deliberately minimal. Limitations include:
+\begin{itemize}
+    \item \textbf{Static data}: We use a fixed manifold, not dynamical or temporal structure
+    \item \textbf{Gaussian noise}: Real channels have more complex noise statistics
+    \item \textbf{Feedforward architecture}: Biological systems have recurrence and feedback
+    \item \textbf{Single manifold}: The input is a simple ring; real data has more complex topology
+\end{itemize}
+
+These limitations define the scope of the current work. Extending to time-series, recurrent architectures, and complex manifolds is future work.
+
+\section{Reproducibility}
+
+The simulation is implemented in Python using PyTorch. All code and figures are available at \texttt{github.com/[repository]}. Key parameters:
+\begin{itemize}
+    \item Input: 2000 points, 512 dimensions, ring manifold
+    \item Encoder/Decoder: 3-layer MLP, 256 hidden units, ReLU activation
+    \item Training: Adam optimizer, 150 epochs, MSE loss
+    \item Critical experiment: $k=2$, $\sigma=0.5$
+\end{itemize}
+
+Random seeds are fixed for reproducibility. Running \texttt{python code\_formation.py} generates all figures.
+
+\section{Conclusion}
+
+We have presented a minimal simulation demonstrating noise-induced symmetry breaking: the emergence of discrete codes from continuous substrates. The key finding is that \textbf{both} a dimensional bottleneck \textbf{and} channel noise are required---neither alone suffices.
+
+The mechanism is sphere packing under uncertainty. When noise creates uncertainty spheres around each code point, and channel capacity is limited, the only way to maximize information transmission is to space codes discretely with safety margins.
+
+This is not just a computational curiosity. It suggests a fundamental principle: \textit{wherever information must pass through noisy, capacity-limited channels, discrete symbols will emerge}. This may underlie categorical perception, working memory limits, the structure of language, and even the digital nature of genetic information.
+
+Symbols don't need to be built in. They emerge.
+
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\end{document}
