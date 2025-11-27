@@ -79,7 +79,7 @@ This paper describes what we simulated, how we simulated it, and what it might m
 Input data & Continuous manifold & $S^1$ with $O(2)$ symmetry \\
 Bottleneck ($k$) & Degrees of freedom & Embedding dimension \\
 Noise ($\sigma$) & Thermal fluctuations & Temperature-like parameter \\
-Loss function & Energy & Hamiltonian to minimize \\
+Loss function & Energy-like objective & Effective potential to minimize \\
 Code clustering & Symmetry reduction & $O(2) \to C_n$ \\
 \bottomrule
 \end{tabular}
@@ -286,7 +286,13 @@ Life uses digital information (genetic sequences) despite operating in an analog
 
 \subsection{Relation to Thermodynamics}
 
-One might ask how this relates to Landauer's principle, which bounds the energy cost of bit erasure \citep{landauer1961, bennett1982}. Our simulation has no explicit energy model, so we cannot make direct thermodynamic claims. However, we note that the discretization here arises from the \textit{interaction} of compression and noise, without explicit erasure operations. A physical implementation would still obey Landauer, but this suggests that some ``symbol-like'' processing may occur in regimes quite different from traditional digital logic. We flag this as an open question rather than a claim.
+One might ask how this relates to Landauer's principle, which bounds the energy cost of bit erasure \citep{landauer1961, bennett1982}. Our simulation has no explicit energy model, so we cannot make direct thermodynamic claims.
+
+However, a thermodynamic extension is natural: treat the reconstruction loss as an energy-like potential $U(\mathbf{c})$ and the channel noise variance as proportional to temperature ($\sigma^2 \propto k_B T$). The system then minimizes an effective free energy $F = \langle U \rangle - TS$, where $S$ is the entropy of the code distribution. Discretization would correspond to a ``crystallization'' into low-energy, high-entropy basins when temperature (noise) is high relative to channel capacity.
+
+In this picture, the stochastic resonance phenomenon becomes standard barrier-crossing dynamics: noise provides the thermal energy to escape local minima and explore the potential landscape. The ``information'' emerges when the system settles into a basin---the uncertainty collapses, and the basin identity carries $\log_2 n$ bits.
+
+We have not developed this thermodynamic model here; doing so properly would require specifying the potential landscape, computing Kramers rates for basin transitions, and tracking entropy production along trajectories. This is a natural direction for future work, connecting to stochastic thermodynamics and the physics of biological information processing. For now, we simply note that the geometry demonstrated here---capacity-limited discretization, SR-like basin escape---is precisely what a thermodynamic model would need to explain.
 
 \section{Relation to Prior Work}
 
@@ -313,7 +319,7 @@ These limitations define the scope. Extending to time-series, recurrent architec
 
 \section{Reproducibility}
 
-The simulation is implemented in Python using PyTorch. Code and figures are available at \texttt{github.com/todd866/code-formation}. Key parameters:
+The simulation is implemented in Python using PyTorch. Code and figures are available at \url{https://github.com/todd866/code-formation}. Key parameters:
 \begin{itemize}
     \item Input: 2000 points, 512 dimensions, ring manifold ($S^1$)
     \item Encoder/Decoder: 3-layer MLP, 256 hidden units, ReLU activation
