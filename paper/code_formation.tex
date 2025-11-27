@@ -287,9 +287,9 @@ Each arrow represents a noisy, capacity-limited interface of the kind simulated 
 
 \subsection{The Measurement Problem}
 
-This framework raises a deep epistemological issue: if high-dimensional field dynamics are the substrate from which discrete codes crystallize, then \textit{measurement itself is dimensional collapse}. When we record from electrodes, we are not observing the high-dimensional field---we are observing the output of a code formation process. The electrode is another bottleneck.
+This framework raises a deep epistemological issue: if high-dimensional field dynamics are the substrate from which discrete codes crystallize, then \textit{measurement itself is dimensional collapse} \citep{todd2025falsifiability}. When we record from electrodes, we are not observing the high-dimensional field---we are observing the output of a code formation process. The electrode is another bottleneck.
 
-This may explain why neuroscience has historically focused on spikes and discrete codes: they are what survives measurement. The continuous, high-dimensional field dynamics---if they carry the ``interesting'' computation---are precisely what our instruments cannot access without collapsing.
+This may explain why neuroscience has historically focused on spikes and discrete codes: they are what survives measurement. The continuous, high-dimensional field dynamics---if they carry the ``interesting'' computation---are precisely what our instruments cannot access without collapsing. Claims about such high-dimensional substrates may be fundamentally difficult to falsify using measurements that necessarily discretize.
 
 The problem generalizes beyond neuroscience. In any system where high-dimensional energy flows into low-dimensional codes---protein folding, gene regulation, immune recognition, ecological dynamics---we face the same issue. We measure the codes (the outputs), not the high-dimensional processes that formed them. The simulation presented here operates entirely in the measurable regime (we have full access to the 512-D input and the $k$-D codes), but it may serve as a window into dynamics that, in physical systems, occur ``upstream'' of observation.
 
@@ -307,9 +307,11 @@ One might ask how this relates to Landauer's principle, which bounds the energy 
 
 However, a thermodynamic extension is natural: treat the reconstruction loss as an energy-like potential $U(\mathbf{c})$ and the channel noise variance as proportional to temperature ($\sigma^2 \propto k_B T$). The system then minimizes an effective free energy $F = \langle U \rangle - TS$, where $S$ is the entropy of the code distribution. Discretization would correspond to a ``crystallization'' into low-energy, high-entropy basins when temperature (noise) is high relative to channel capacity.
 
-In this picture, the stochastic resonance phenomenon becomes standard barrier-crossing dynamics: noise provides the thermal energy to escape local minima and explore the potential landscape. The ``information'' emerges when the system settles into a basin---the uncertainty collapses, and the basin identity carries $\log_2 n$ bits.
+In this picture, the stochastic resonance phenomenon becomes standard barrier-crossing dynamics: noise provides the thermal energy to escape local minima and explore the potential landscape. The ``information'' emerges when the system settles into a basin---the uncertainty collapses, and the basin identity carries $\log_2 n$ bits. This collapse is precisely the ``projection'' event where thermodynamic costs are paid \citep{todd2025maxwell}.
 
-We have not developed this thermodynamic model here; doing so properly would require specifying the potential landscape, computing Kramers rates for basin transitions, and tracking entropy production along trajectories. This is a natural direction for future work, connecting to stochastic thermodynamics and the physics of biological information processing. For now, we simply note that the geometry demonstrated here---capacity-limited discretization, SR-like basin escape---is precisely what a thermodynamic model would need to explain.
+A key insight from recent work on biological thermodynamics is that continuous high-dimensional substrates can defer the Landauer cost of bit erasure until dimensional projection occurs \citep{todd2025maxwell}. In our simulation, the encoder-decoder system operates analogously: information exists as continuous correlations in the high-D input, and the thermodynamic ``payment'' would occur at the bottleneck where dimensional collapse forces discretization. This suggests that the code formation process we demonstrate may be energetically favored precisely because it defers projection until capacity constraints make it inevitable.
+
+We have not developed this thermodynamic model here; doing so properly would require specifying the potential landscape, computing Kramers rates for basin transitions, and tracking entropy production along trajectories. This is a natural direction for future work, connecting to stochastic thermodynamics and the physics of biological information processing.
 
 \section{Relation to Prior Work}
 
