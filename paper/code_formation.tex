@@ -230,7 +230,7 @@ Figure~\ref{fig:pca} shows that the encoder learns to preserve \textbf{high-vari
 \begin{figure}[H]
 \centering
 \includegraphics[width=\textwidth]{../output/what_gets_preserved.png}
-\caption{\textbf{What gets preserved.} Top: Input lives in first 2 PCs (intrinsic dimensionality $\approx 2$). PC1-2 capture the ring; higher PCs are embedding noise. Bottom: Encoder learns to preserve these high-variance directions. At $k=2$ with noise, discretization occurs.}
+\caption{\textbf{What gets preserved.} Top: Input effectively lives in a 2-D linear subspace (PC1--2 capture the ring; higher PCs are embedding noise). The generative manifold is $S^1$ (1-D), but it requires 2 linear dimensions to embed without self-intersection. Bottom: Encoder learns to preserve these high-variance directions. At $k=2$ with noise, discretization occurs.}
 \label{fig:pca}
 \end{figure}
 

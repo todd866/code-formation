@@ -394,7 +394,7 @@ def show_raw_data(results, data):
     ax.set_aspect('equal')
     ax.set_xlabel('Wide channel → ring survives noise')
 
-    plt.suptitle('From Continuous Input to Discrete Codes: A Topological Phase Transition',
+    plt.suptitle('From Continuous Input to Discrete Codes: A Topological Transition',
                  fontsize=14, fontweight='bold', y=0.98)
     plt.tight_layout()
     plt.savefig('output/codes_by_channel_dim.png', dpi=150, bbox_inches='tight')
