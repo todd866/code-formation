@@ -316,50 +316,165 @@ def run_sr_experiment():
     ax3.legend(loc='upper left', fontsize=10)
     ax3.grid(True, alpha=0.3)
 
-    # Panel (d): Trajectory visualization for one ambiguous signal
+    # Panel (d): TRUE Expectation-biased SR simulation
+    # Expectation enters in HIGH-D space (before bottleneck), not in code space
     ax4 = axes[1, 1]
 
-    # Run one trajectory at optimal noise
-    optimal_noise = noise_levels[peak_idx]
-    _, traj_nobias, _ = sr_with_dimensionality_tracking(
-        test_signals[:1], code_centroids, optimal_noise,
-        n_timesteps=15
-    )
-    _, traj_bias, _ = sr_with_dimensionality_tracking(
-        test_signals[:1], code_centroids, optimal_noise,
-        bias_toward=test_labels[:1], bias_strength=0.25,
-        n_timesteps=15
-    )
+    print("   Running high-D expectation bias simulation...")
 
-    # Plot background codes as circles (basins)
-    for i, c in enumerate(code_centroids):
-        circle = plt.Circle((c[0], c[1]), mean_dist * 0.3, fill=True,
-                           color=RAINBOW[i], alpha=0.15, zorder=1)
-        ax4.add_patch(circle)
-        ax4.scatter([c[0]], [c[1]], c=RAINBOW[i], s=180, zorder=5,
-                   edgecolors='black', linewidths=1.5)
+    # Get the trained model and data from the main experiment
+    # We need to recompute high-D prototypes for each code
+    from code_formation import generate_ring_data as gen_ring, Autoencoder
 
-    # Plot trajectories
-    traj_nb = traj_nobias[0]
-    traj_b = traj_bias[0]
+    # Reload model and get high-D prototypes
+    data_hd, theta = gen_ring(n_samples=2000, input_dim=512)
+    true_labels_hd = generate_ring_labels(theta, n_sectors=6)
 
-    ax4.plot(traj_nb[:, 0], traj_nb[:, 1], 'o-', color='#666666',
-            markersize=5, linewidth=1.5, alpha=0.8, label='No bias')
-    ax4.plot(traj_b[:, 0], traj_b[:, 1], 's-', color='#D55E00',
-            markersize=5, linewidth=1.5, alpha=0.8, label='With correct bias')
+    # Train fresh model for this demo
+    torch.manual_seed(42)
+    model = Autoencoder(512, 256, 2, noise_std=0.5)
+    data_tensor = data_hd.clone()
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+    loss_fn = torch.nn.MSELoss()
 
-    # Mark start
-    ax4.scatter([test_signals[0, 0]], [test_signals[0, 1]],
-               c='black', s=120, marker='x', linewidths=3, zorder=10)
-    ax4.annotate('Start', xy=(test_signals[0, 0], test_signals[0, 1]),
-                xytext=(test_signals[0, 0] - 0.8, test_signals[0, 1] + 0.8),
-                fontsize=10, arrowprops=dict(arrowstyle='->', color='black'))
+    for epoch in range(150):
+        model.train()
+        optimizer.zero_grad()
+        recon, _ = model(data_tensor, add_noise=True)
+        loss = loss_fn(recon, data_tensor)
+        loss.backward()
+        optimizer.step()
 
-    ax4.set_xlabel('Code dim 1', fontsize=11)
-    ax4.set_ylabel('Code dim 2', fontsize=11)
-    ax4.set_title('(d) Example trajectories: noise enables basin escape', fontweight='bold', fontsize=12)
-    ax4.legend(loc='upper right', fontsize=10)
-    ax4.set_aspect('equal', adjustable='datalim')
+    model.eval()
+
+    # Compute HIGH-D prototypes for each code (mean input for each cluster)
+    hd_prototypes = []
+    for label in range(6):
+        mask = true_labels_hd == label
+        prototype = data_hd[mask].mean(dim=0).numpy()
+        hd_prototypes.append(prototype)
+    hd_prototypes = np.array(hd_prototypes)
+
+    # Find genuinely ambiguous stimuli by testing which inputs land near boundaries
+    # in CODE space (not just averaging prototypes in input space)
+    basin_A, basin_B = 0, 1  # Adjacent basins
+
+    # Get code centroids for this fresh model
+    with torch.no_grad():
+        _, codes_fresh = model(data_tensor, add_noise=False)
+    codes_fresh = codes_fresh.numpy()
+
+    # Find fresh centroids
+    fresh_centroids = []
+    for label in range(6):
+        mask = true_labels_hd == label
+        fresh_centroids.append(codes_fresh[mask].mean(axis=0))
+    fresh_centroids = np.array(fresh_centroids)
+
+    # Find inputs that encode to near the boundary between A and B
+    boundary_inputs = []
+    for i in range(len(data_hd)):
+        code = codes_fresh[i]
+        dist_A = np.linalg.norm(code - fresh_centroids[basin_A])
+        dist_B = np.linalg.norm(code - fresh_centroids[basin_B])
+        # Look for points where distances are similar (near boundary)
+        if abs(dist_A - dist_B) < 0.3 * (dist_A + dist_B) / 2:
+            boundary_inputs.append(i)
+
+    if len(boundary_inputs) < 10:
+        # Fallback: use interpolated inputs
+        boundary_inputs = list(range(50))
+
+    print(f"   Found {len(boundary_inputs)} boundary inputs")
+
+    # Run many trials with different expectation conditions
+    n_trials = 200
+
+    # Key parameters
+    noise_std = 0.4
+    expect_strength = 0.2
+
+    results = {'No expectation': [], 'Expect A': [], 'Expect B': []}
+
+    for trial in range(n_trials):
+        # Pick a random boundary input
+        idx = np.random.choice(boundary_inputs)
+        stimulus = data_hd[idx].numpy()
+
+        # Fresh noise for each trial
+        noise = np.random.randn(512) * noise_std
+
+        # NO EXPECTATION: just stimulus + noise
+        input_none = torch.tensor(stimulus + noise, dtype=torch.float32).unsqueeze(0)
+        with torch.no_grad():
+            _, code_none = model(input_none, add_noise=False)
+        code_none = code_none.numpy()[0]
+
+        # Decode to nearest of the two competing basins
+        dist_A = np.linalg.norm(code_none - fresh_centroids[basin_A])
+        dist_B = np.linalg.norm(code_none - fresh_centroids[basin_B])
+        results['No expectation'].append(basin_A if dist_A < dist_B else basin_B)
+
+        # EXPECT A: add high-D pattern pointing toward A prototype
+        expect_A = expect_strength * (hd_prototypes[basin_A] - stimulus)
+        input_A = torch.tensor(stimulus + noise + expect_A, dtype=torch.float32).unsqueeze(0)
+        with torch.no_grad():
+            _, code_A = model(input_A, add_noise=False)
+        code_A = code_A.numpy()[0]
+
+        dist_A = np.linalg.norm(code_A - fresh_centroids[basin_A])
+        dist_B = np.linalg.norm(code_A - fresh_centroids[basin_B])
+        results['Expect A'].append(basin_A if dist_A < dist_B else basin_B)
+
+        # EXPECT B: add high-D pattern pointing toward B prototype
+        expect_B = expect_strength * (hd_prototypes[basin_B] - stimulus)
+        input_B = torch.tensor(stimulus + noise + expect_B, dtype=torch.float32).unsqueeze(0)
+        with torch.no_grad():
+            _, code_B = model(input_B, add_noise=False)
+        code_B = code_B.numpy()[0]
+
+        dist_A = np.linalg.norm(code_B - fresh_centroids[basin_A])
+        dist_B = np.linalg.norm(code_B - fresh_centroids[basin_B])
+        results['Expect B'].append(basin_A if dist_A < dist_B else basin_B)
+
+    # Compute percentages landing in each basin
+    pct_A_none = results['No expectation'].count(basin_A) / n_trials * 100
+    pct_A_expA = results['Expect A'].count(basin_A) / n_trials * 100
+    pct_A_expB = results['Expect B'].count(basin_A) / n_trials * 100
+
+    # Plot as bar chart
+    conditions = ['No\nexpectation', 'Expect\nbasin A', 'Expect\nbasin B']
+    pct_land_A = [pct_A_none, pct_A_expA, pct_A_expB]
+    pct_land_B = [100 - p for p in pct_land_A]
+
+    x_pos = np.arange(3)
+    width = 0.35
+
+    bars_A = ax4.bar(x_pos - width/2, pct_land_A, width, label=f'Land in A',
+                     color=RAINBOW[basin_A], alpha=0.8, edgecolor='black')
+    bars_B = ax4.bar(x_pos + width/2, pct_land_B, width, label=f'Land in B',
+                     color=RAINBOW[basin_B], alpha=0.8, edgecolor='black')
+
+    ax4.set_ylabel('% of trials', fontsize=11)
+    ax4.set_xticks(x_pos)
+    ax4.set_xticklabels(conditions, fontsize=10)
+    ax4.set_ylim(0, 105)
+    ax4.legend(loc='upper right', fontsize=9)
+    ax4.set_title('(d) High-D expectation biases code formation', fontweight='bold', fontsize=12)
+
+    # Add value labels on bars
+    for bar, pct in zip(bars_A, pct_land_A):
+        if pct > 5:
+            ax4.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 2,
+                    f'{pct:.0f}%', ha='center', va='bottom', fontsize=9, fontweight='bold')
+    for bar, pct in zip(bars_B, pct_land_B):
+        if pct > 5:
+            ax4.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 2,
+                    f'{pct:.0f}%', ha='center', va='bottom', fontsize=9, fontweight='bold')
+
+    # Caption explaining the mechanism
+    ax4.text(0.5, -0.15, 'Expectation added in 512-D space before bottleneck (β→γ)',
+            transform=ax4.transAxes, ha='center', fontsize=10, style='italic', color='gray')
 
     plt.tight_layout()
     outdir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'output')

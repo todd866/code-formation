@@ -258,11 +258,32 @@ Figure~\ref{fig:sr} demonstrates this SR-like behavior:
 \begin{figure}[H]
 \centering
 \includegraphics[width=\textwidth]{../output/stochastic_resonance.png}
-\caption{\textbf{SR-like behavior in code decoding.} (a) Learned codes and ambiguous test signals on basin boundaries. (b) Accuracy peaks at intermediate noise---the hallmark SR curve. (c) Effective dimensionality (PR) increases monotonically with noise. (d--f) Geometric interpretation: noise enables exploration of ambient space to escape low-D traps.}
+\caption{\textbf{SR-like behavior and expectation bias.} (a) Learned codes and ambiguous test signals on basin boundaries. (b) Accuracy peaks at intermediate noise---the hallmark SR curve. (c) Effective dimensionality (PR) increases monotonically with noise. (d) Expectation-biased SR: when a high-dimensional ``expectation'' signal is added before the bottleneck, it biases which basin ambiguous inputs land in.}
 \label{fig:sr}
 \end{figure}
 
 This reframes SR in geometric terms: noise provides access to extra degrees of freedom in the ambient embedding space, enabling escape from low-dimensional traps. Optimal performance occurs when noise is sufficient to escape boundaries but not so large as to cause random wandering.
+
+\subsection{Expectation-Biased Stochastic Resonance}
+
+The SR phenomenon described above assumes \textit{isotropic} noise---random fluctuations with no preferred direction. But in systems with top-down predictions, the noise need not be isotropic. We propose \textbf{expectation-biased stochastic resonance} (EBSR): the same SR dynamics, but with noise biased toward an expected code.
+
+Formally, let $\mathbf{z}_0$ be an ambiguous code sitting on a decision boundary. Its trajectory under noisy dynamics becomes:
+\begin{equation}
+    \mathbf{z}_{t+1} = \mathbf{z}_t + \eta\boldsymbol{\xi}_t + \beta\mathbf{b}
+\end{equation}
+where $\boldsymbol{\xi}_t \sim \mathcal{N}(0, I)$ is isotropic noise (scaled by $\eta$), $\mathbf{b}$ is a unit vector pointing toward the expected code centroid, and $\beta$ controls the strength of expectation bias.
+
+Figure~\ref{fig:sr}(d) demonstrates this in our simulation. We add expectation not in the low-dimensional code space, but in the original 512-dimensional input space---before the bottleneck. This models the key biological intuition: top-down signals (e.g., from higher cortical areas) enter the system at the high-dimensional stage and bias which code emerges after dimensional collapse.
+
+The results show that expectation reliably biases which basin ambiguous inputs land in. When the expectation matches the true category, accuracy improves; when it mismatches, systematic errors occur.
+
+\paragraph{The evolutionary argument.} Stochastic resonance is widespread in biological sensory systems---it appears to be a ``free'' consequence of noisy, threshold-based neural circuits \citep{gammaitoni1998}. Similarly, top-down predictions are ubiquitous in cortex. Given that both mechanisms exist independently, \textit{not} combining them would leave performance on the table. We therefore suggest that EBSR is not merely possible but likely: any system that already exploits SR for signal detection, and that has access to top-down expectations, would naturally evolve to bias its noise toward predicted outcomes.
+
+This yields a three-ingredient model of biological code formation:
+\begin{center}
+\textit{Bottleneck} + \textit{Noise} + \textit{Predictions} $\to$ \textit{Expectation-biased discrete codes}
+\end{center}
 
 \section{Speculative Implications}
 
@@ -283,7 +304,11 @@ In this view, the cascade is:
 \textit{Beta field (high-D)} $\to$ \textit{Gamma (low-D, high info)} $\to$ \textit{Spikes (discrete codes)}
 \end{center}
 
-Each arrow represents a noisy, capacity-limited interface of the kind simulated here. The ``code formation'' we demonstrate---discretization via bottleneck + noise---may thus occur at multiple stages: first at the beta-to-gamma transition (field compression), and again at the gamma-to-spike transition (neural discretization). This inverts the standard interpretation and suggests that slow oscillations are not simple carriers but high-dimensional substrates from which discrete neural codes crystallize.
+Each arrow represents a noisy, capacity-limited interface of the kind simulated here. The ``code formation'' we demonstrate---discretization via bottleneck + noise---may thus occur at multiple stages: first at the beta-to-gamma transition (field compression), and again at the gamma-to-spike transition (neural discretization).
+
+Crucially, this interpretation connects directly to EBSR: if beta oscillations carry top-down predictions as high-dimensional spatial patterns, then beta-gamma coupling \textit{is} expectation-biased stochastic resonance. The beta field provides the ``expectation'' signal that enters the system before the gamma bottleneck, biasing which discrete code emerges. In this picture, the brain is performing SR on itself---using slow oscillations to shape the noise statistics of fast oscillations, thereby implementing prediction-guided code formation.
+
+This inverts the standard interpretation and suggests that slow oscillations are not simple carriers but high-dimensional prediction signals from which discrete neural codes crystallize.
 
 \subsection{The Measurement Problem}
 
