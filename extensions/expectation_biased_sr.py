@@ -241,13 +241,13 @@ def run_sr_experiment():
             results_acc[name].append(np.mean(trial_accs))
             results_dim[name].append(np.mean(trial_dims))
 
-    # Step 5: Create figure
+    # Step 5: Create figure (clean 2x2 layout)
     print("5. Generating visualization...")
 
-    fig = plt.figure(figsize=(15, 10))
+    fig, axes = plt.subplots(2, 2, figsize=(12, 10))
 
     # Panel (a): Code space with ambiguous signals
-    ax1 = fig.add_subplot(2, 3, 1)
+    ax1 = axes[0, 0]
 
     colors = [RAINBOW[l] for l in true_labels_train]
     ax1.scatter(code_np[:, 0], code_np[:, 1], c=colors, alpha=0.15, s=10)
@@ -261,13 +261,13 @@ def run_sr_experiment():
         ax1.scatter([test_signals[i, 0]], [test_signals[i, 1]],
                    c='black', s=60, marker='x', linewidths=2, zorder=8)
 
-    ax1.set_xlabel('Code dim 1')
-    ax1.set_ylabel('Code dim 2')
-    ax1.set_title('(a) Codes and ambiguous signals\n× on low-D boundaries', fontweight='bold')
+    ax1.set_xlabel('Code dim 1', fontsize=11)
+    ax1.set_ylabel('Code dim 2', fontsize=11)
+    ax1.set_title('(a) Learned codes with ambiguous test signals (×)', fontweight='bold', fontsize=12)
     ax1.set_aspect('equal', adjustable='datalim')
 
     # Panel (b): SR curves (accuracy)
-    ax2 = fig.add_subplot(2, 3, 2)
+    ax2 = axes[0, 1]
 
     colors_line = {'No bias': '#666666', 'Correct bias': '#D55E00', 'Wrong bias': '#0072B2'}
 
@@ -284,19 +284,19 @@ def run_sr_experiment():
         ax2.scatter([noise_levels[peak_idx] / mean_dist], [no_bias_acc[peak_idx]],
                    c='#666666', s=200, marker='*', zorder=10, edgecolors='white', linewidths=1.5)
         ax2.annotate('SR peak', xy=(noise_levels[peak_idx] / mean_dist, no_bias_acc[peak_idx]),
-                    xytext=(noise_levels[peak_idx] / mean_dist + 0.1, no_bias_acc[peak_idx] + 0.05),
-                    fontsize=10, arrowprops=dict(arrowstyle='->', color='gray'))
+                    xytext=(noise_levels[peak_idx] / mean_dist + 0.15, no_bias_acc[peak_idx] + 0.05),
+                    fontsize=11, arrowprops=dict(arrowstyle='->', color='gray'))
 
-    ax2.axhline(y=1/6, color='gray', linestyle=':', alpha=0.5)
-    ax2.set_xlabel('Noise level (× code spacing)')
-    ax2.set_ylabel('Decoding accuracy')
-    ax2.set_title('(b) Stochastic resonance curves', fontweight='bold')
-    ax2.legend(loc='upper right', fontsize=9)
+    ax2.axhline(y=1/6, color='gray', linestyle=':', alpha=0.5, label='Chance')
+    ax2.set_xlabel('Noise level (× code spacing)', fontsize=11)
+    ax2.set_ylabel('Decoding accuracy', fontsize=11)
+    ax2.set_title('(b) Stochastic resonance: accuracy peaks at intermediate noise', fontweight='bold', fontsize=12)
+    ax2.legend(loc='upper right', fontsize=10)
     ax2.set_ylim(0, 1.05)
     ax2.grid(True, alpha=0.3)
 
     # Panel (c): Dimensionality curves - THE KEY INSIGHT
-    ax3 = fig.add_subplot(2, 3, 3)
+    ax3 = axes[1, 0]
 
     for name, dims in results_dim.items():
         lw = 3 if name == 'No bias' else 2.5
@@ -307,17 +307,17 @@ def run_sr_experiment():
     # Mark optimal dimensionality point
     if 0 < peak_idx < len(results_dim['No bias']) - 1:
         ax3.axvline(x=noise_levels[peak_idx] / mean_dist, color='gray', linestyle=':', alpha=0.7)
-        ax3.text(noise_levels[peak_idx] / mean_dist + 0.02, ax3.get_ylim()[1] * 0.9,
-                'Optimal\nnoise', fontsize=9, color='gray')
+        ax3.text(noise_levels[peak_idx] / mean_dist + 0.03, ax3.get_ylim()[1] * 0.85,
+                'SR peak', fontsize=10, color='gray')
 
-    ax3.set_xlabel('Noise level (× code spacing)')
-    ax3.set_ylabel('Effective dimensionality (PR)')
-    ax3.set_title('(c) Noise expands dimensionality', fontweight='bold')
-    ax3.legend(loc='upper left', fontsize=9)
+    ax3.set_xlabel('Noise level (× code spacing)', fontsize=11)
+    ax3.set_ylabel('Effective dimensionality (PR)', fontsize=11)
+    ax3.set_title('(c) Noise expands effective dimensionality', fontweight='bold', fontsize=12)
+    ax3.legend(loc='upper left', fontsize=10)
     ax3.grid(True, alpha=0.3)
 
     # Panel (d): Trajectory visualization for one ambiguous signal
-    ax4 = fig.add_subplot(2, 3, 4)
+    ax4 = axes[1, 1]
 
     # Run one trajectory at optimal noise
     optimal_noise = noise_levels[peak_idx]
@@ -331,12 +331,12 @@ def run_sr_experiment():
         n_timesteps=15
     )
 
-    # Plot background codes
+    # Plot background codes as circles (basins)
     for i, c in enumerate(code_centroids):
-        circle = plt.Circle((c[0], c[1]), mean_dist * 0.25, fill=True,
-                           color=RAINBOW[i], alpha=0.2, zorder=1)
+        circle = plt.Circle((c[0], c[1]), mean_dist * 0.3, fill=True,
+                           color=RAINBOW[i], alpha=0.15, zorder=1)
         ax4.add_patch(circle)
-        ax4.scatter([c[0]], [c[1]], c=RAINBOW[i], s=150, zorder=5,
+        ax4.scatter([c[0]], [c[1]], c=RAINBOW[i], s=180, zorder=5,
                    edgecolors='black', linewidths=1.5)
 
     # Plot trajectories
@@ -344,95 +344,22 @@ def run_sr_experiment():
     traj_b = traj_bias[0]
 
     ax4.plot(traj_nb[:, 0], traj_nb[:, 1], 'o-', color='#666666',
-            markersize=6, linewidth=1.5, alpha=0.7, label='No bias')
+            markersize=5, linewidth=1.5, alpha=0.8, label='No bias')
     ax4.plot(traj_b[:, 0], traj_b[:, 1], 's-', color='#D55E00',
-            markersize=6, linewidth=1.5, alpha=0.7, label='With bias')
+            markersize=5, linewidth=1.5, alpha=0.8, label='With correct bias')
 
     # Mark start
     ax4.scatter([test_signals[0, 0]], [test_signals[0, 1]],
-               c='black', s=100, marker='x', linewidths=3, zorder=10)
-    ax4.annotate('Start\n(low-D)', xy=(test_signals[0, 0], test_signals[0, 1]),
-                xytext=(test_signals[0, 0] - 1, test_signals[0, 1] + 1),
-                fontsize=9, arrowprops=dict(arrowstyle='->', color='black'))
+               c='black', s=120, marker='x', linewidths=3, zorder=10)
+    ax4.annotate('Start', xy=(test_signals[0, 0], test_signals[0, 1]),
+                xytext=(test_signals[0, 0] - 0.8, test_signals[0, 1] + 0.8),
+                fontsize=10, arrowprops=dict(arrowstyle='->', color='black'))
 
-    ax4.set_xlabel('Code dim 1')
-    ax4.set_ylabel('Code dim 2')
-    ax4.set_title('(d) Example trajectories\nNoise enables basin escape', fontweight='bold')
-    ax4.legend(loc='upper right', fontsize=9)
+    ax4.set_xlabel('Code dim 1', fontsize=11)
+    ax4.set_ylabel('Code dim 2', fontsize=11)
+    ax4.set_title('(d) Example trajectories: noise enables basin escape', fontweight='bold', fontsize=12)
+    ax4.legend(loc='upper right', fontsize=10)
     ax4.set_aspect('equal', adjustable='datalim')
-
-    # Panel (e): Dimensionality over time within a trial
-    ax5 = fig.add_subplot(2, 3, 5)
-
-    # Get time-resolved dimensionality
-    _, _, dim_traj_low = sr_with_dimensionality_tracking(
-        test_signals, code_centroids, noise_levels[2],
-        n_timesteps=12
-    )
-    _, _, dim_traj_opt = sr_with_dimensionality_tracking(
-        test_signals, code_centroids, optimal_noise,
-        n_timesteps=12
-    )
-    _, _, dim_traj_high = sr_with_dimensionality_tracking(
-        test_signals, code_centroids, noise_levels[-3],
-        n_timesteps=12
-    )
-
-    timesteps = np.arange(len(dim_traj_opt))
-    ax5.plot(timesteps, dim_traj_low, 'o-', color='#999999', label=f'Low noise', linewidth=2)
-    ax5.plot(timesteps, dim_traj_opt, 's-', color='#D55E00', label=f'Optimal noise', linewidth=2.5)
-    ax5.plot(timesteps, dim_traj_high, '^-', color='#0072B2', label=f'High noise', linewidth=2)
-
-    ax5.set_xlabel('Time step')
-    ax5.set_ylabel('Effective dimensionality (PR)')
-    ax5.set_title('(e) Dimensionality dynamics\nOptimal noise → controlled expansion', fontweight='bold')
-    ax5.legend(loc='upper right', fontsize=9)
-    ax5.grid(True, alpha=0.3)
-
-    # Panel (f): Schematic of the mechanism
-    ax6 = fig.add_subplot(2, 3, 6)
-    ax6.set_xlim(-2.5, 2.5)
-    ax6.set_ylim(-0.5, 3)
-    ax6.axis('off')
-    ax6.set_title('(f) Mechanism: SR as dimensionality expansion', fontweight='bold')
-
-    # Draw three scenarios
-    scenarios = [
-        (-1.7, 'Low noise', '#999999', 'Stuck on\nboundary\n(dim ≈ 1)'),
-        (0, 'Optimal', '#D55E00', 'Expands to\nescape basin\n(dim ≈ 1.5)'),
-        (1.7, 'High noise', '#0072B2', 'Random walk\n(dim → 2)'),
-    ]
-
-    for x, label, color, desc in scenarios:
-        # Draw two basins
-        ax6.plot([x-0.4, x], [0.8, 0.3], '-', color=RAINBOW[0], linewidth=3, alpha=0.5)
-        ax6.plot([x, x+0.4], [0.3, 0.8], '-', color=RAINBOW[1], linewidth=3, alpha=0.5)
-
-        # Ball position
-        if label == 'Low noise':
-            ball_pos = (x, 0.35)
-            ax6.annotate('', xy=(x-0.1, 0.35), xytext=(x+0.1, 0.35),
-                        arrowprops=dict(arrowstyle='<->', color=color, lw=1))
-        elif label == 'Optimal':
-            ball_pos = (x-0.25, 0.5)
-            # Show expansion
-            ax6.annotate('', xy=(x-0.35, 0.45), xytext=(x, 0.35),
-                        arrowprops=dict(arrowstyle='->', color=color, lw=2))
-        else:
-            ball_pos = (x+0.1, 1.0)
-            # Show random expansion
-            for angle in [0, 60, 120, 180, 240, 300]:
-                dx = 0.15 * np.cos(np.radians(angle))
-                dy = 0.15 * np.sin(np.radians(angle))
-                ax6.annotate('', xy=(x + dx, 0.6 + dy), xytext=(x, 0.5),
-                            arrowprops=dict(arrowstyle='->', color=color, lw=1, alpha=0.5))
-
-        ax6.scatter([ball_pos[0]], [ball_pos[1]], c='black', s=80, zorder=10)
-        ax6.text(x, 2.2, label, ha='center', fontsize=10, fontweight='bold', color=color)
-        ax6.text(x, 1.5, desc, ha='center', fontsize=8, color='gray')
-
-    ax6.text(0, -0.3, 'Noise increases dimensionality → enables escape from low-D boundary',
-            ha='center', fontsize=10, style='italic')
 
     plt.tight_layout()
     outdir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'output')

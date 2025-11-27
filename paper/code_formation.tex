@@ -79,7 +79,7 @@ This paper describes what we simulated, how we simulated it, and what it might m
 Input data & Continuous manifold & $S^1$ with $O(2)$ symmetry \\
 Bottleneck ($k$) & Degrees of freedom & Embedding dimension \\
 Noise ($\sigma$) & Thermal fluctuations & Temperature-like parameter \\
-Loss function & Energy-like objective & Effective potential to minimize \\
+Loss function & Effective potential & Lyapunov-like objective \\
 Code clustering & Symmetry reduction & $O(2) \to C_n$ \\
 \bottomrule
 \end{tabular}
@@ -103,7 +103,7 @@ data_512d = ring_2d @ projection + noise(0.05)
 
 The embedding noise (0.05) is small relative to the ring radius, so the intrinsic $S^1$ topology is preserved. The input is \textit{continuous}---points can take any value along the ring. There are no discrete categories in the data itself.
 
-For \textit{evaluation only}, we partition the ring into 6 equal sectors and ask: do the learned codes preserve this structure? We treat these sectors as ``semantic classes'' and measure the Adjusted Rand Index (ARI) between k-means clusters of learned codes and ground-truth sectors.
+For \textit{evaluation only}, we partition the ring into 6 equal sectors and ask: do the learned codes preserve this structure? We treat these sectors as ``semantic classes'' and measure the Adjusted Rand Index (ARI) between k-means clusters of learned codes and ground-truth sectors. (The choice of $n=6$ is for convenience; results are qualitatively similar for 4--8 sectors.)
 
 \subsection{The Channel: Encoder-Noise-Decoder}
 
@@ -305,9 +305,9 @@ Life uses digital information (genetic sequences) despite operating in an analog
 
 One might ask how this relates to Landauer's principle, which bounds the energy cost of bit erasure \citep{landauer1961, bennett1982}. Our simulation has no explicit energy model, so we cannot make direct thermodynamic claims.
 
-However, a thermodynamic extension is natural: treat the reconstruction loss as an energy-like potential $U(\mathbf{c})$ and the channel noise variance as proportional to temperature ($\sigma^2 \propto k_B T$). The system then minimizes an effective free energy $F = \langle U \rangle - TS$, where $S$ is the entropy of the code distribution. Discretization would correspond to a ``crystallization'' into low-energy, high-entropy basins when temperature (noise) is high relative to channel capacity.
+However, a thermodynamic reinterpretation is natural: treat the reconstruction loss as an effective potential $U(\mathbf{c})$ and the channel noise variance as proportional to temperature ($\sigma^2 \propto k_B T$). The system then minimizes an effective free energy $F = \langle U \rangle - TS$, where $S$ is the entropy of the code distribution. Discretization would correspond to the formation of a small number of deep basins in the effective potential, each with a finite catchment volume in code space. At fixed channel capacity, increasing temperature (noise) favours coarse, robust basins over fine-grained structure.
 
-In this picture, the stochastic resonance phenomenon becomes standard barrier-crossing dynamics: noise provides the thermal energy to escape local minima and explore the potential landscape. The ``information'' emerges when the system settles into a basin---the uncertainty collapses, and the basin identity carries $\log_2 n$ bits. This collapse is precisely the ``projection'' event where thermodynamic costs are paid \citep{todd2025maxwell}.
+In this picture, the stochastic resonance phenomenon becomes standard barrier-crossing dynamics: noise provides the thermal energy to escape local minima and explore the potential landscape. The ``information'' emerges when the system settles into a basin---the uncertainty collapses, and the basin identity carries $\log_2 n$ bits. This collapse is a natural candidate for the ``projection'' event where thermodynamic costs are paid \citep{todd2025maxwell}.
 
 A key insight from recent work on biological thermodynamics is that continuous high-dimensional substrates can defer the Landauer cost of bit erasure until dimensional projection occurs \citep{todd2025maxwell}. In our simulation, the encoder-decoder system operates analogously: information exists as continuous correlations in the high-D input, and the thermodynamic ``payment'' would occur at the bottleneck where dimensional collapse forces discretization. This suggests that the code formation process we demonstrate may be energetically favored precisely because it defers projection until capacity constraints make it inevitable.
 
